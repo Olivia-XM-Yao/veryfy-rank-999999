@@ -1,0 +1,67 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "Times" 1 12 0 
+0 0 1 2 2 2 2 2 2 1 1 1 1 }1 1 0 0 0 0 1 0 1 0 2 2 0 1 }{PSTYLE "Text \+
+Output" -1 2 1 {CSTYLE "" -1 -1 "Courier" 1 10 0 0 255 1 0 0 0 0 0 1 
+3 0 3 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "" 2 6 1 {CSTYLE "" 
+-1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 2 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 
+-1 0 }{PSTYLE "Warning" 2 7 1 {CSTYLE "" -1 -1 "" 0 1 0 0 255 1 0 0 0 
+0 0 0 1 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 3550 "restart:\n\n# Comp
+ute p(0),...,p(Nmax) by Euler's pentagonal recurrence.\nBuildPartition
+Table := proc(Nmax::nonnegint)\n    local Ptab, nn, r, g, sign, total;
+\n\n    Ptab := Array(0..Nmax, datatype=anything, fill=0);\n    Ptab[0
+] := 1;\n\n    for nn from 1 to Nmax do\n        total := 0;\n        \+
+r := 1;\n        sign := 1;\n\n        while true do\n            g :=
+ iquo(r*(3*r-1), 2);\n\n            if g > nn then\n                br
+eak;\n            end if;\n\n            total := total + sign*Ptab[nn
+-g];\n\n            if g+r <= nn then\n                total := total \+
++ sign*Ptab[nn-g-r];\n            end if;\n\n            r := r+1;\n  \+
+          sign := -sign;\n        end do;\n\n        Ptab[nn] := total
+;\n    end do;\n\n    return Ptab;\nend proc:\n\n# Compute N(u,nn) usi
+ng (2.4) with iota=2.\n# Negative partition arguments contribute zero.
+\n# This formula also handles u=0 when nn>=1.\nRankCoeff := proc(u::no
+nnegint, nn::posint, Ptab)\n    local r, x, term, total, sign;\n\n    \+
+total := 0;\n    r := 1;\n    sign := 1;\n\n    while true do\n       \+
+ x := nn-r*u-iquo(r*(3*r-1), 2);\n\n        if x < 0 then\n           \+
+ break;\n        end if;\n\n        term := Ptab[x];\n\n        if x >
+= r then\n            term := term-Ptab[x-r];\n        end if;\n\n    \+
+    total := total + sign*term;\n        r := r+1;\n        sign := -s
+ign;\n    end do;\n\n    return total;\nend proc:\n\n# Exact number of
+ required determinants with 73 <= n <= H.\nCount33Through := proc(H::n
+onnegint)\n    local q, rem3;\n\n    if H < 73 then\n        return 0;
+\n    elif H <= 106 then\n        return iquo((H-73)*(H-72), 2);\n    \+
+end if;\n\n    q := iquo(H-7, 3);\n    rem3 := irem(H-7, 3);\n\n    re
+turn iquo(3*q*(q-1), 2)+(rem3+1)*q-1056;\nend proc:\n\n# Verify every \+
+required determinant in the chosen n-block.\nVerify33 := proc(nFirst::
+posint, nLast::posint)\n    local Ptab, nn, m, bound, left, mid, right
+,\n          det, checked, expected;\n\n    if nFirst < 73 or nLast < \+
+nFirst or nLast >= 10^6 then\n        error \"require 73 <= nFirst <= \+
+nLast < 10^6\";\n    end if;\n\n    expected := Count33Through(nLast)-
+Count33Through(nFirst-1);\n\n    printf(\"Computing p(0),...,p(%a).\\n
+\", nLast);\n    Ptab := BuildPartitionTable(nLast);\n    printf(\"Par
+tition table ready; %a determinants to check.\\n\",\n           expect
+ed);\n\n    checked := 0;\n\n    for nn from nFirst to nLast do\n     \+
+   bound := min(nn-73, iquo(nn-7, 3));\n\n        # An empty m-range n
+eeds no comparison.\n        if bound >= 1 then\n            left := R
+ankCoeff(0, nn, Ptab);\n            mid := RankCoeff(1, nn, Ptab);\n\n
+            for m from 1 to bound do\n                right := RankCoe
+ff(m+1, nn, Ptab);\n                det := mid^2-left*right;\n\n      \+
+          if det < 0 then\n                    error \"FAIL: n=%1, m=%
+2, determinant=%3\",\n                          nn, m, det;\n         \+
+       end if;\n\n                checked := checked+1;\n\n           \+
+     # Reuse the adjacent coefficients.\n                left := mid;
+\n                mid := right;\n            end do;\n        end if;
+\n\n        if irem(nn, 1000) = 0 or nn = nLast then\n            prin
+tf(\"Completed n=%a; checked=%a.\\n\", nn, checked);\n        end if;
+\n    end do;\n\n    if checked <> expected then\n        error \"inco
+mplete verification: checked=%1, expected=%2\",\n              checked
+, expected;\n    end if;\n\n    printf(\"PASS: %a <= n <= %a; checked \+
+%a determinants.\\n\",\n           nFirst, nLast, checked);\n\n    ret
+urn [nFirst, nLast, checked, true];\nend proc:\n\n# Full range in (3.3
+).\n# Change only these two bounds to verify a smaller block.\nnFirst \+
+:= 73:\nnLast := 50000:\n\nresult := Verify33(nFirst, nLast):" }}
+{PARA 6 "" 1 "" {TEXT -1 28 "Computing p(0),...,p(50000)." }}{PARA 7 "
+" 1 "" {TEXT -1 33 "Warning, computation interrupted\n" }}}{EXCHG 
+{PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}{MARK "1 0 0" 0 }{VIEWOPTS 1 
+1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 2 33 1 1 }
