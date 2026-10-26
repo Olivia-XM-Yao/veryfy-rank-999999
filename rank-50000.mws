@@ -1,0 +1,118 @@
+{VERSION 6 0 "IBM INTEL NT" "6.0" }
+{USTYLETAB {CSTYLE "Maple Input" -1 0 "Courier" 0 1 255 0 0 1 0 1 0 0 
+1 0 0 0 0 1 }{PSTYLE "Normal" -1 0 1 {CSTYLE "" -1 -1 "Times" 1 12 0 
+0 0 1 2 2 2 2 2 2 1 1 1 1 }1 1 0 0 0 0 1 0 1 0 2 2 0 1 }{PSTYLE "Text \+
+Output" -1 2 1 {CSTYLE "" -1 -1 "Courier" 1 10 0 0 255 1 0 0 0 0 0 1 
+3 0 3 0 }1 0 0 -1 -1 -1 0 0 0 0 0 0 -1 0 }{PSTYLE "" 2 6 1 {CSTYLE "" 
+-1 -1 "" 0 1 0 0 0 0 0 0 0 0 0 0 2 0 0 0 }0 0 0 -1 -1 -1 0 0 0 0 0 0 
+-1 0 }}
+{SECT 0 {EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 3550 "restart:\n\n# Comp
+ute p(0),...,p(Nmax) by Euler's pentagonal recurrence.\nBuildPartition
+Table := proc(Nmax::nonnegint)\n    local Ptab, nn, r, g, sign, total;
+\n\n    Ptab := Array(0..Nmax, datatype=anything, fill=0);\n    Ptab[0
+] := 1;\n\n    for nn from 1 to Nmax do\n        total := 0;\n        \+
+r := 1;\n        sign := 1;\n\n        while true do\n            g :=
+ iquo(r*(3*r-1), 2);\n\n            if g > nn then\n                br
+eak;\n            end if;\n\n            total := total + sign*Ptab[nn
+-g];\n\n            if g+r <= nn then\n                total := total \+
++ sign*Ptab[nn-g-r];\n            end if;\n\n            r := r+1;\n  \+
+          sign := -sign;\n        end do;\n\n        Ptab[nn] := total
+;\n    end do;\n\n    return Ptab;\nend proc:\n\n# Compute N(u,nn) usi
+ng (2.4) with iota=2.\n# Negative partition arguments contribute zero.
+\n# This formula also handles u=0 when nn>=1.\nRankCoeff := proc(u::no
+nnegint, nn::posint, Ptab)\n    local r, x, term, total, sign;\n\n    \+
+total := 0;\n    r := 1;\n    sign := 1;\n\n    while true do\n       \+
+ x := nn-r*u-iquo(r*(3*r-1), 2);\n\n        if x < 0 then\n           \+
+ break;\n        end if;\n\n        term := Ptab[x];\n\n        if x >
+= r then\n            term := term-Ptab[x-r];\n        end if;\n\n    \+
+    total := total + sign*term;\n        r := r+1;\n        sign := -s
+ign;\n    end do;\n\n    return total;\nend proc:\n\n# Exact number of
+ required determinants with 73 <= n <= H.\nCount33Through := proc(H::n
+onnegint)\n    local q, rem3;\n\n    if H < 73 then\n        return 0;
+\n    elif H <= 106 then\n        return iquo((H-73)*(H-72), 2);\n    \+
+end if;\n\n    q := iquo(H-7, 3);\n    rem3 := irem(H-7, 3);\n\n    re
+turn iquo(3*q*(q-1), 2)+(rem3+1)*q-1056;\nend proc:\n\n# Verify every \+
+required determinant in the chosen n-block.\nVerify33 := proc(nFirst::
+posint, nLast::posint)\n    local Ptab, nn, m, bound, left, mid, right
+,\n          det, checked, expected;\n\n    if nFirst < 73 or nLast < \+
+nFirst or nLast >= 10^6 then\n        error \"require 73 <= nFirst <= \+
+nLast < 10^6\";\n    end if;\n\n    expected := Count33Through(nLast)-
+Count33Through(nFirst-1);\n\n    printf(\"Computing p(0),...,p(%a).\\n
+\", nLast);\n    Ptab := BuildPartitionTable(nLast);\n    printf(\"Par
+tition table ready; %a determinants to check.\\n\",\n           expect
+ed);\n\n    checked := 0;\n\n    for nn from nFirst to nLast do\n     \+
+   bound := min(nn-73, iquo(nn-7, 3));\n\n        # An empty m-range n
+eeds no comparison.\n        if bound >= 1 then\n            left := R
+ankCoeff(0, nn, Ptab);\n            mid := RankCoeff(1, nn, Ptab);\n\n
+            for m from 1 to bound do\n                right := RankCoe
+ff(m+1, nn, Ptab);\n                det := mid^2-left*right;\n\n      \+
+          if det < 0 then\n                    error \"FAIL: n=%1, m=%
+2, determinant=%3\",\n                          nn, m, det;\n         \+
+       end if;\n\n                checked := checked+1;\n\n           \+
+     # Reuse the adjacent coefficients.\n                left := mid;
+\n                mid := right;\n            end do;\n        end if;
+\n\n        if irem(nn, 1000) = 0 or nn = nLast then\n            prin
+tf(\"Completed n=%a; checked=%a.\\n\", nn, checked);\n        end if;
+\n    end do;\n\n    if checked <> expected then\n        error \"inco
+mplete verification: checked=%1, expected=%2\",\n              checked
+, expected;\n    end if;\n\n    printf(\"PASS: %a <= n <= %a; checked \+
+%a determinants.\\n\",\n           nFirst, nLast, checked);\n\n    ret
+urn [nFirst, nLast, checked, true];\nend proc:\n\n# Full range in (3.3
+).\n# Change only these two bounds to verify a smaller block.\nnFirst \+
+:= 73:\nnLast := 50000:\n\nresult := Verify33(nFirst, nLast):" }}
+{PARA 6 "" 1 "" {TEXT -1 28 "Computing p(0),...,p(50000)." }}{PARA 6 "
+" 1 "" {TEXT -1 55 "Partition table ready; 416540620 determinants to c
+heck." }}{PARA 6 "" 1 "" {TEXT -1 33 "Completed n=1000; checked=163120
+." }}{PARA 6 "" 1 "" {TEXT -1 33 "Completed n=2000; checked=660620." }
+}{PARA 6 "" 1 "" {TEXT -1 34 "Completed n=3000; checked=1491453." }}
+{PARA 6 "" 1 "" {TEXT -1 34 "Completed n=4000; checked=2655620." }}
+{PARA 6 "" 1 "" {TEXT -1 34 "Completed n=5000; checked=4153120." }}
+{PARA 6 "" 1 "" {TEXT -1 34 "Completed n=6000; checked=5983953." }}
+{PARA 6 "" 1 "" {TEXT -1 34 "Completed n=7000; checked=8148120." }}
+{PARA 6 "" 1 "" {TEXT -1 35 "Completed n=8000; checked=10645620." }}
+{PARA 6 "" 1 "" {TEXT -1 35 "Completed n=9000; checked=13476453." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=10000; checked=16640620." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=11000; checked=20138120." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=12000; checked=23968953." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=13000; checked=28133120." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=14000; checked=32630620." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=15000; checked=37461453." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=16000; checked=42625620." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=17000; checked=48123120." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=18000; checked=53953953." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=19000; checked=60118120." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=20000; checked=66615620." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=21000; checked=73446453." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=22000; checked=80610620." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=23000; checked=88108120." }}
+{PARA 6 "" 1 "" {TEXT -1 36 "Completed n=24000; checked=95938953." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=25000; checked=104103120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=26000; checked=112600620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=27000; checked=121431453." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=28000; checked=130595620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=29000; checked=140093120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=30000; checked=149923953." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=31000; checked=160088120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=32000; checked=170585620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=33000; checked=181416453." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=34000; checked=192580620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=35000; checked=204078120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=36000; checked=215908953." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=37000; checked=228073120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=38000; checked=240570620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=39000; checked=253401453." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=40000; checked=266565620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=41000; checked=280063120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=42000; checked=293893953." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=43000; checked=308058120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=44000; checked=322555620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=45000; checked=337386453." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=46000; checked=352550620." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=47000; checked=368048120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=48000; checked=383878953." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=49000; checked=400043120." }}
+{PARA 6 "" 1 "" {TEXT -1 37 "Completed n=50000; checked=416540620." }}
+{PARA 6 "" 1 "" {TEXT -1 55 "PASS: 73 <= n <= 50000; checked 416540620
+ determinants." }}}{EXCHG {PARA 0 "> " 0 "" {MPLTEXT 1 0 0 "" }}}}
+{MARK "1 0 0" 0 }{VIEWOPTS 1 1 0 1 1 1803 1 1 1 1 }{PAGENUMBERS 0 1 2 
+33 1 1 }
